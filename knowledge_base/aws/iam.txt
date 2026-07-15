@@ -1,0 +1,17 @@
+IAM access denied errors usually mean the principal does not have an identity policy,
+resource policy, permissions boundary, or service control policy that allows the requested action.
+
+Example:
+Error: AccessDenied: User is not authorized to perform s3:PutObject
+
+Possible cause:
+The user or role is missing s3:PutObject permission for the bucket object ARN.
+
+Suggested policy:
+{
+  "Effect": "Allow",
+  "Action": "s3:PutObject",
+  "Resource": "arn:aws:s3:::my-bucket/*"
+}
+
+Also check explicit Deny statements, bucket policies, AWS Organizations SCPs, and whether the IAM role is actually attached to the compute resource.

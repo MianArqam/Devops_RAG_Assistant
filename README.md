@@ -1,27 +1,44 @@
 # DevOps RAG Assistant
 
-DevOps RAG Assistant is a Retrieval-Augmented Generation application designed to behave like a junior DevOps engineer. Instead of manually searching AWS, Docker, Kubernetes, or troubleshooting documentation, a user can paste an error message or log output and receive a context-aware explanation, likely cause, suggested fix, and source citations.
+DevOps RAG Assistant is a Retrieval-Augmented Generation (RAG) application that works like a junior DevOps engineer. A user can paste an error message, cloud issue, container failure, or log output, and the system retrieves relevant documentation before generating a practical troubleshooting answer with source citations.
 
-The system combines a React frontend, a FastAPI backend, a local knowledge base, embedding-based retrieval, and an LLM provider such as Gemini or OpenAI.
+The project is designed as a portfolio-ready AI engineering and DevOps project using FastAPI, React, local document ingestion, vector search, and Gemini/OpenAI integration.
 
-## Purpose
+## Table of Contents
 
-Modern DevOps troubleshooting often requires searching through documentation, logs, cloud provider references, and previous incidents. This project automates the first stage of that workflow.
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [RAG Pipeline](#rag-pipeline)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [API Endpoints](#api-endpoints)
+- [Environment Configuration](#environment-configuration)
+- [Run Locally](#run-locally)
+- [Knowledge Base](#knowledge-base)
+- [Security Notes](#security-notes)
+- [Limitations](#limitations)
+- [Future Improvements](#future-improvements)
+- [CV Description](#cv-description)
 
-Example input:
+## Overview
+
+Traditional DevOps troubleshooting often requires searching AWS documentation, Docker references, Kubernetes guides, Stack Overflow posts, and old logs. This application automates the first step of that workflow.
+
+Example user input:
 
 ```text
 Error: AccessDenied: User is not authorized to perform s3:PutObject
 ```
 
-Example output:
+Example generated output:
 
 ```text
 Possible cause:
-The IAM user or role is missing s3:PutObject permission for the target S3 bucket object ARN.
+The IAM role or user does not have s3:PutObject permission for the target S3 object ARN.
 
 Suggested fix:
-Attach a policy that allows s3:PutObject on arn:aws:s3:::my-bucket/*
+Add an IAM policy that allows s3:PutObject on arn:aws:s3:::my-bucket/*
 
 Source:
 aws/iam.txt
@@ -29,68 +46,52 @@ aws/iam.txt
 
 ## Key Features
 
-- Chat with local DevOps documentation
-- Analyze raw infrastructure and application logs
+- Chat with DevOps documentation
+- Analyze infrastructure and application logs
 - Upload PDF, TXT, and Markdown documents
-- Retrieve relevant documentation chunks from a vector index
-- Generate final answers using Gemini or OpenAI
-- Show source citations for transparency
-- Maintain frontend session history
+- Retrieve relevant documentation chunks using vector search
+- Generate final answers with Gemini or OpenAI
+- Return source citations for transparency
+- Store starter knowledge for AWS, Docker, Kubernetes, and logs
+- Provide a React frontend with Chat, Upload, Error Analysis, and History pages
 - Run locally with simple PowerShell scripts
-- Work without a paid LLM by returning retrieved documentation snippets
+- Continue working in fallback mode when no LLM key is configured
 
 ## Architecture
 
-```text
-User
-  |
-  v
-React Frontend
-  |
-  v
-FastAPI Backend
-  |
-  v
-Document Loader
-  |
-  v
-Text Splitter
-  |
-  v
-Embedding Model
-  |
-  v
-Vector Store / FAISS-compatible Search
-  |
-  v
-Relevant Documentation Chunks
-  |
-  v
-LLM Provider
-  |
-  v
-Answer + Source Citations
+```mermaid
+flowchart TD
+    User["User"] --> Frontend["React Frontend"]
+    Frontend --> API["FastAPI Backend"]
+    API --> Loader["Document Loader"]
+    Loader --> Splitter["Text Splitter"]
+    Splitter --> Embedder["Embedding Provider"]
+    Embedder --> Store["Vector Store / FAISS-compatible Search"]
+    Store --> Context["Relevant Documentation Chunks"]
+    Context --> LLM["Gemini or OpenAI"]
+    LLM --> Answer["Answer with Source Citations"]
+    Answer --> Frontend
 ```
 
-## How the RAG Pipeline Works
+## RAG Pipeline
 
-RAG means Retrieval-Augmented Generation. The application does not send only the user question to the LLM. It first retrieves relevant documentation from the local knowledge base and then sends both the user query and retrieved context to the model.
+RAG stands for Retrieval-Augmented Generation. Instead of sending only the user's question to the LLM, the backend first retrieves relevant local documentation and then sends that context to the model.
 
 ### 1. Document Ingestion
 
-Documents are stored in:
+The app reads files from:
 
 ```text
 knowledge_base/
 ```
 
-The backend reads supported files:
+Supported formats:
 
 - `.txt`
 - `.md`
 - `.pdf`
 
-Uploaded files are saved under:
+Uploaded documents are stored in:
 
 ```text
 knowledge_base/uploads/
@@ -98,9 +99,7 @@ knowledge_base/uploads/
 
 ### 2. Text Splitting
 
-Large documents are split into smaller chunks so the retriever can search specific sections instead of entire files.
-
-Current chunking strategy:
+Large documents are split into smaller overlapping chunks so the retriever can find the most relevant section.
 
 ```python
 chunks = split_text(document, chunk_size=500, overlap=80)
@@ -108,102 +107,43 @@ chunks = split_text(document, chunk_size=500, overlap=80)
 
 ### 3. Embedding Generation
 
-Each text chunk is converted into a vector embedding. Embeddings are numerical representations of text meaning.
+Each chunk is converted into a vector embedding. An embedding is a numerical representation of text meaning.
 
-Default behavior:
+Default setup:
 
-- Uses a lightweight built-in hash embedding fallback so the project runs easily on limited machines.
+- Lightweight built-in hash embedding fallback
 
-Optional ML stack:
+Optional ML setup:
 
 - `sentence-transformers/all-MiniLM-L6-v2`
-- FAISS
+- FAISS CPU index
 
-### 4. Vector Search
+### 4. Retrieval
 
-When the user asks a question, the backend embeds the query and compares it with stored document vectors.
-
-The top matching chunks are returned as context.
+When a user asks a question, the backend embeds the query and compares it with stored document vectors.
 
 Example:
 
 ```text
 Query: AccessDenied s3:PutObject
-Top source: knowledge_base/aws/iam.txt
+Top result: knowledge_base/aws/iam.txt
 ```
 
-### 5. LLM Answer Generation
+### 5. Answer Generation
 
-The retrieved context and user question are sent to the selected LLM provider.
-
-Supported providers:
-
-- Gemini
-- OpenAI
-- Local fallback response when no LLM is configured
-
-The LLM produces:
-
-- Possible cause
-- Suggested fix
-- Relevant commands or policy examples
-- Source citations
+The backend sends the user query and retrieved context to the selected LLM provider. The model returns a concise troubleshooting answer with source citations.
 
 ## Technology Stack
 
-### Frontend
-
-- React
-- Vite
-- Tailwind CSS
-- Lucide React icons
-
-Frontend pages:
-
-- Chat
-- Error Analysis
-- Upload Documents
-- History
-
-### Backend
-
-- Python
-- FastAPI
-- Uvicorn
-- Pydantic Settings
-- PyPDF
-- OpenAI SDK
-- Gemini REST API through `httpx`
-
-### Retrieval and Embeddings
-
-- Built-in lightweight embedding fallback
-- Optional `sentence-transformers/all-MiniLM-L6-v2`
-- Optional FAISS vector index
-
-### Knowledge Base
-
-Current starter knowledge base includes:
-
-```text
-knowledge_base/
-  aws/
-    iam.txt
-    s3.txt
-    ec2.txt
-    lambda.txt
-    vpc.txt
-    cloudwatch.txt
-  docker/
-    build_errors.txt
-    networking.txt
-  kubernetes/
-    pods.txt
-    deployments.txt
-  logs/
-    nginx_errors.txt
-    lambda_errors.txt
-```
+| Layer | Tools |
+| --- | --- |
+| Frontend | React, Vite, Tailwind CSS, Lucide React |
+| Backend | Python, FastAPI, Uvicorn, Pydantic Settings |
+| Document Parsing | PyPDF, text file loaders |
+| Retrieval | Lightweight embeddings, optional Sentence Transformers |
+| Vector Search | Built-in vector search, optional FAISS |
+| LLM Providers | Gemini REST API, OpenAI SDK |
+| Runtime Scripts | PowerShell |
 
 ## Project Structure
 
@@ -212,17 +152,9 @@ devops-rag-assistant/
   backend/
     app/
       api/
-        routes.py
       core/
-        config.py
       models/
-        schemas.py
       rag/
-        document_loader.py
-        embeddings.py
-        llm.py
-        text_splitter.py
-        vector_store.py
       main.py
     storage/
     requirements.txt
@@ -329,32 +261,17 @@ Request:
 }
 ```
 
-Response:
-
-```json
-{
-  "answer": "Possible cause...",
-  "sources": []
-}
-```
-
 ## Environment Configuration
 
-Create:
+Create a local environment file:
 
 ```text
 backend/.env
 ```
 
-You can copy from:
+Use `backend/.env.example` as a template.
 
-```text
-backend/.env.example
-```
-
-### Gemini Configuration
-
-Recommended for the current free-plan setup:
+### Gemini Free Plan
 
 ```env
 LLM_PROVIDER=gemini
@@ -362,9 +279,9 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-3.5-flash
 ```
 
-Gemini free-plan limits are low, so rate-limit or quota errors may happen after repeated requests.
+The Gemini free plan has low rate limits, so quota errors can happen after repeated requests.
 
-### OpenAI Configuration
+### OpenAI
 
 ```env
 LLM_PROVIDER=openai
@@ -372,26 +289,26 @@ OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-4o-mini
 ```
 
-### No LLM Mode
+### Fallback Mode
 
 ```env
 LLM_PROVIDER=none
 ```
 
-In this mode, the app still retrieves relevant source documents and returns them as context.
+Fallback mode still retrieves matching source documents, but it does not call an external LLM.
 
-## Running the Project
+## Run Locally
 
 Open two PowerShell windows.
 
-### 1. Start Backend
+### Backend
 
 ```powershell
-cd C:\Users\muham\OneDrive\Desktop\devops-rag-assistant
+cd C:\path\to\devops-rag-assistant
 .\scripts\run_backend.ps1
 ```
 
-Backend URL:
+Backend:
 
 ```text
 http://127.0.0.1:8000
@@ -403,14 +320,14 @@ API docs:
 http://127.0.0.1:8000/docs
 ```
 
-### 2. Start Frontend
+### Frontend
 
 ```powershell
-cd C:\Users\muham\OneDrive\Desktop\devops-rag-assistant
+cd C:\path\to\devops-rag-assistant
 .\scripts\run_frontend.ps1
 ```
 
-Frontend URL:
+Frontend:
 
 ```text
 http://127.0.0.1:5173
@@ -418,12 +335,10 @@ http://127.0.0.1:5173
 
 ## Optional Full ML Setup
 
-The default setup is lightweight so it can run on a normal Windows machine without downloading large ML packages.
-
-For a stronger local retrieval setup, install the optional ML requirements:
+The default setup is intentionally lightweight. For stronger semantic retrieval, install the optional ML dependencies:
 
 ```powershell
-cd C:\Users\muham\OneDrive\Desktop\devops-rag-assistant\backend
+cd C:\path\to\devops-rag-assistant\backend
 .\.venv\Scripts\pip install -r requirements-ml.txt
 ```
 
@@ -433,67 +348,61 @@ This enables:
 - FAISS CPU index
 - Higher-quality semantic retrieval
 
+## Knowledge Base
+
+Starter documents are included for common DevOps troubleshooting domains:
+
+```text
+knowledge_base/
+  aws/
+    iam.txt
+    s3.txt
+    ec2.txt
+    lambda.txt
+    vpc.txt
+    cloudwatch.txt
+  docker/
+    build_errors.txt
+    networking.txt
+  kubernetes/
+    pods.txt
+    deployments.txt
+  logs/
+    nginx_errors.txt
+    lambda_errors.txt
+```
+
 ## Security Notes
 
 - Do not commit `backend/.env`.
-- API keys should stay only in `.env`.
-- If an API key is exposed in logs, screenshots, terminal output, or Git history, rotate it immediately.
-- The `.env.example` file should contain placeholders only.
-- Uploaded documents are stored locally under `knowledge_base/uploads/`.
+- Keep API keys out of Git history.
+- Rotate any key that appears in logs, screenshots, terminal output, or commits.
+- Use placeholders only in `.env.example`.
+- Uploaded files are stored locally under `knowledge_base/uploads/`.
 
-## Current Limitations
+## Limitations
 
-- The default embedding fallback is lightweight and less accurate than a real transformer embedding model.
-- The history page stores only browser-session history, not database-backed history.
-- There is no user authentication.
+- The default embedding fallback is less accurate than transformer embeddings.
+- Chat history is stored only in the browser session.
+- There is no authentication system.
 - Uploaded documents are indexed locally only.
-- Gemini free-plan usage is limited by Google rate limits and daily quotas.
-- The app is built for local development, not production deployment.
+- Gemini free-plan quota may limit repeated testing.
+- The app is currently designed for local development.
 
 ## Future Improvements
 
-- Add persistent chat history with SQLite or PostgreSQL
+- Add persistent history with SQLite or PostgreSQL
 - Add user accounts and authentication
-- Add ChromaDB or Pinecone as a managed vector database
-- Add Docker Compose for easier deployment
+- Add ChromaDB or Pinecone support
+- Add Docker Compose
 - Add streaming LLM responses
-- Add better document chunking with metadata
-- Add source highlighting in the UI
-- Add evaluation tests for retrieval quality
-- Add support for Ollama local models
-- Add CI/CD pipeline with GitHub Actions
-- Add cloud deployment on AWS, Azure, or Render
+- Add better metadata-aware chunking
+- Add source highlighting in the frontend
+- Add retrieval quality tests
+- Add Ollama local model support
+- Add CI/CD with GitHub Actions
+- Deploy to a cloud provider
 
 ## CV Description
 
-Built a DevOps-focused RAG assistant using FastAPI, React, Tailwind, local document ingestion, embedding-based retrieval, and Gemini/OpenAI integration. The system retrieves relevant AWS, Docker, Kubernetes, and log documentation from a local knowledge base and generates troubleshooting guidance with source citations.
-
-## Example Troubleshooting Flow
-
-Input:
-
-```text
-Error: AccessDenied: User is not authorized to perform s3:PutObject
-```
-
-Retrieval:
-
-```text
-aws/iam.txt
-aws/s3.txt
-```
-
-Generated answer:
-
-```text
-Possible cause:
-The IAM role or user does not have s3:PutObject permission for the object ARN.
-
-Suggested fix:
-Add an IAM policy allowing s3:PutObject on arn:aws:s3:::my-bucket/*
-
-Source:
-aws/iam.txt
-```
-#   D e v o p s _ R A G _ A s s i s t a n t  
- 
+Built a DevOps-focused RAG assistant using FastAPI, React, Tailwind CSS, local document ingestion, vector search, and Gemini/OpenAI integration. The system retrieves relevant AWS, Docker, Kubernetes, and log documentation from a local knowledge base and generates troubleshooting guidance with source citations.

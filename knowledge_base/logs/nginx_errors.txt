@@ -1,0 +1,13 @@
+Nginx 502 Bad Gateway usually means Nginx cannot reach the upstream application.
+
+Common causes:
+- Upstream service is down.
+- Wrong upstream host or port.
+- App listens on 127.0.0.1 in a container instead of 0.0.0.0.
+- Timeout while waiting for upstream response.
+
+Fix path:
+Check upstream application logs.
+Verify Nginx proxy_pass target.
+Confirm Docker or Kubernetes service ports.
+Increase proxy timeout only after confirming the backend is healthy.

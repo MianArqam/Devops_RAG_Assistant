@@ -1,0 +1,8 @@
+Lambda functions use an execution role for AWS API calls.
+AccessDenied errors usually happen when the execution role lacks the target service permission.
+
+Common fixes:
+- Add the missing permission to the Lambda execution role.
+- Use the correct resource ARN.
+- Check CloudWatch Logs for the request id and full exception.
+- Redeploy environment variables if the function points to the wrong bucket, table, or queue.

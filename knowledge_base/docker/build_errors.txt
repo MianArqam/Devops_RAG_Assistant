@@ -1,0 +1,13 @@
+Docker build failures often come from missing files, incorrect build context, package repository errors, or incompatible base images.
+
+Common messages:
+- COPY failed: file not found in build context
+- failed to solve: process did not complete successfully
+- npm install exits with code 1
+- apt-get update fails because repository metadata is unavailable
+
+Fix path:
+Run docker build from the directory containing the Dockerfile.
+Check .dockerignore for accidentally excluded files.
+Pin base image versions for reproducibility.
+Split package install steps so the failing dependency is visible.

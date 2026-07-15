@@ -1,0 +1,11 @@
+VPC networking issues can appear as timeouts, connection refused, or DNS failures.
+
+Common causes:
+- Security group does not allow inbound or outbound traffic.
+- Network ACL blocks ephemeral ports.
+- Private subnet has no NAT gateway for internet egress.
+- Route table points to the wrong gateway.
+- DNS hostnames or DNS resolution are disabled.
+
+Suggested checks:
+Compare source and destination security groups, route tables, subnet type, and resolver settings.

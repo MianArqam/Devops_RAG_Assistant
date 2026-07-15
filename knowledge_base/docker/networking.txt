@@ -1,0 +1,12 @@
+Docker container networking issues usually involve port publishing, bind addresses, DNS, or bridge network isolation.
+
+Common symptoms:
+- App works inside the container but not from the host.
+- Connection refused on localhost.
+- Containers cannot resolve each other by name.
+
+Fix path:
+Publish ports with -p host_port:container_port.
+Bind the app to 0.0.0.0 inside the container, not only 127.0.0.1.
+Use a user-defined bridge network for service-name DNS.
+Inspect logs with docker logs and network settings with docker inspect.

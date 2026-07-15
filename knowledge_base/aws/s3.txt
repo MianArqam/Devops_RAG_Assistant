@@ -1,0 +1,13 @@
+S3 PutObject requires permission on object resources, not only the bucket resource.
+Use arn:aws:s3:::bucket-name/* for objects.
+
+Common issues:
+- Policy grants arn:aws:s3:::bucket-name but not arn:aws:s3:::bucket-name/*
+- Bucket policy denies uploads without encryption
+- Object ownership or ACL restrictions block cross-account uploads
+- Application uses a different role than expected
+
+Fix path:
+Confirm the caller identity with aws sts get-caller-identity.
+Check identity policy and bucket policy.
+Retry with a small test object after the policy change.

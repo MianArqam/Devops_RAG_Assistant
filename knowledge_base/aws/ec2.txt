@@ -1,0 +1,8 @@
+EC2 applications normally access AWS services through an instance profile role.
+When an app running on EC2 receives AccessDenied, verify that the expected IAM role is attached to the instance.
+
+Troubleshooting:
+- Inspect the instance IAM role in the EC2 console.
+- Check metadata credentials from the instance.
+- Confirm the policy allows the exact action and resource.
+- Restart the application if credentials were cached by the SDK.

@@ -1,0 +1,13 @@
+Kubernetes deployment problems include unavailable replicas, image pull failures, rollout timeouts, and selector mismatches.
+
+Troubleshooting:
+- kubectl rollout status deployment/name
+- kubectl describe deployment name
+- kubectl get rs,pods -l app=label
+- kubectl describe pod pod-name
+
+Common fixes:
+Correct the image tag and registry credentials.
+Ensure deployment selectors match pod template labels.
+Increase resource requests only when the cluster has capacity.
+Check readiness probes when traffic is not routed to pods.

@@ -1,0 +1,8 @@
+CloudWatch Logs can show application stack traces, Lambda errors, ECS task failures, and agent issues.
+
+If logs are missing:
+- The execution role may lack logs:CreateLogGroup, logs:CreateLogStream, or logs:PutLogEvents.
+- The log group name may be wrong.
+- The agent may be stopped or misconfigured.
+
+Use recent timestamps, request ids, and error codes to connect logs to infrastructure changes.

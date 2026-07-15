@@ -1,0 +1,13 @@
+Lambda timeout errors happen when the function runs longer than the configured timeout.
+
+Common causes:
+- Slow external API or database call.
+- Lambda in a VPC cannot reach the internet without NAT.
+- Cold starts and large dependencies.
+- Infinite retry or blocking code.
+
+Fix path:
+Inspect CloudWatch duration and init duration.
+Increase timeout only when the work is expected to take longer.
+Add NAT gateway or VPC endpoint for private subnet network access.
+Move long-running work to SQS, Step Functions, or ECS.

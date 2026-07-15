@@ -1,0 +1,14 @@
+Kubernetes CrashLoopBackOff means a container repeatedly starts and exits.
+
+Common causes:
+- Application process crashes at startup.
+- Missing environment variable or secret.
+- Image command or args are wrong.
+- Liveness probe kills the container too early.
+- The container cannot connect to a required database or service.
+
+Fix path:
+Run kubectl logs pod-name --previous.
+Describe the pod and inspect events.
+Temporarily relax probes if startup is slow.
+Verify ConfigMaps, Secrets, image tags, and resource limits.
